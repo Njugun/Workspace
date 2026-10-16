@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project additions
+.vs/
+env/
+.venv/
+db.sqlite3
+.django_tailwind_cli/
+__pycache__/
+*.pyc
