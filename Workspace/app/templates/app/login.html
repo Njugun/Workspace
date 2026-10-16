@@ -1,50 +1,31 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
+<div class="mx-auto mt-16 w-full max-w-sm px-6">
+    <h1 class="text-2xl font-bold tracking-tight">Log in</h1>
+    <p class="mt-1 text-sm text-slate-500">Use your Workspace account.</p>
 
-<h2>{{ title }}</h2>
-<div class="row">
-    <div class="col-md-8">
-        <section id="loginForm">
-            <form action="." method="post" class="form-horizontal">
-                {% csrf_token %}
-                <h4>Use a local account to log in.</h4>
-                <hr />
-                <div class="form-group">
-                    <label for="id_username" class="col-md-2 control-label">User name</label>
-                    <div class="col-md-10">
-                        {{ form.username }}
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="id_password" class="col-md-2 control-label">Password</label>
-                    <div class="col-md-10">
-                        {{ form.password }}
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div class="col-md-offset-2 col-md-10">
-                        <input type="hidden" name="next" value="/" />
-                        <input type="submit" value="Log in" class="btn btn-default" />
-                    </div>
-                </div>
-                {% if form.errors %}
-                <p class="validation-summary-errors">Please enter a correct user name and password.</p>
-                {% endif %}
-            </form>
-        </section>
-    </div>
-    <div class="col-md-4">
-        <section id="socialLoginForm"></section>
-    </div>
+    {% if form.errors %}
+    <p class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">Your username and password do not match. Please try again.</p>
+    {% endif %}
+
+    <form method="post" action="." class="mt-6 space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div>
+            <label for="id_username" class="block text-sm font-medium">Username</label>
+            <input type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autofocus required
+                   class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+        </div>
+
+        <div>
+            <label for="id_password" class="block text-sm font-medium">Password</label>
+            <input type="password" name="password" id="id_password" required
+                   class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+        </div>
+
+        <button type="submit" class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">Log in</button>
+    </form>
 </div>
-
-{% endblock %}
-
-
-{% block scripts %}
-
-    {% load static %}
-<script src="{% static 'app/scripts/jquery.validate.min.js' %}"></script>
-
 {% endblock %}

@@ -227,3 +227,6 @@ db.sqlite3
 .django_tailwind_cli/
 __pycache__/
 *.pyc
+
+**/assets/css/tailwind.css
+*.pyproj.user

@@ -1,49 +1,37 @@
+{% load tailwind_cli %}
 <!DOCTYPE html>
-<html>
+<html lang="en" class="h-full">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - My Django Application</title>
-    {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'app/content/bootstrap.min.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'app/content/site.css' %}" />
-    <script src="{% static 'app/scripts/modernizr-2.6.2.js' %}"></script>
+    <title>{{ title|default:"Workspace" }} - Workspace</title>
+    {% tailwind_css %}
 </head>
+<body class="h-full bg-white text-slate-800 antialiased">
+    <div class="flex h-full flex-col">
 
-<body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a href="/" class="navbar-brand">Application name</a>
-            </div>
-            <div class="navbar-collapse collapse">
-                <ul class="nav navbar-nav">
-                    <li><a href="{% url 'home' %}">Home</a></li>
-                    <li><a href="{% url 'about' %}">About</a></li>
-                    <li><a href="{% url 'contact' %}">Contact</a></li>
-                </ul>
-                {% include 'app/loginpartial.html' %}
-            </div>
+        <header class="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 px-4">
+            <a href="{% url 'home' %}" class="text-sm font-semibold tracking-tight">Workspace</a>
+            {% include 'app/loginpartial.html' %}
+        </header>
+
+        <div class="flex min-h-0 flex-1">
+            {% if user.is_authenticated %}
+            <aside class="hidden w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 px-2 py-3 text-sm md:block">
+                {% block sidebar %}
+                <a href="{% url 'home' %}" class="block rounded px-2 py-1.5 hover:bg-slate-200">Home</a>
+                <p class="mt-4 px-2 text-xs font-medium uppercase tracking-wide text-slate-400">Pages</p>
+                <p class="px-2 py-1.5 text-slate-400">No pages yet</p>
+                {% endblock %}
+            </aside>
+            {% endif %}
+
+            <main class="min-w-0 flex-1 overflow-y-auto">
+                {% block content %}{% endblock %}
+            </main>
         </div>
+
     </div>
-
-    <div class="container body-content">
-{% block content %}{% endblock %}
-        <hr/>
-        <footer>
-            <p>&copy; {{ year }} - My Django Application</p>
-        </footer>
-    </div>
-
-    <script src="{% static 'app/scripts/jquery-1.10.2.js' %}"></script>
-    <script src="{% static 'app/scripts/bootstrap.js' %}"></script>
-    <script src="{% static 'app/scripts/respond.js' %}"></script>
-{% block scripts %}{% endblock %}
-
+    {% block scripts %}{% endblock %}
 </body>
 </html>
