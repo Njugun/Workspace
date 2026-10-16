@@ -5,5 +5,8 @@
     <button type="submit" class="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100">Log off</button>
 </form>
 {% else %}
-<a href="{% url 'login' %}" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700">Log in</a>
+<div class="flex items-center gap-2">
+    <a href="{% url 'signup' %}" class="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">Sign up</a>
+    <a href="{% url 'login' %}" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700">Log in</a>
+</div>
 {% endif %}

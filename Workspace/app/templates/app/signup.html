@@ -1,0 +1,43 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="mx-auto mt-16 w-full max-w-sm px-6">
+    <h1 class="text-2xl font-bold tracking-tight">Create your account</h1>
+    <p class="mt-1 text-sm text-slate-500">
+        Already have one?
+        <a href="{% url 'login' %}" class="font-medium text-slate-900 underline">Log in</a>
+    </p>
+
+    {% if form.non_field_errors %}
+    <p class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ form.non_field_errors.0 }}</p>
+    {% endif %}
+
+    <form method="post" class="mt-6 space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label for="id_username" class="block text-sm font-medium">Username</label>
+            <input type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autofocus required autocomplete="username"
+                   class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            {% for error in form.username.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label for="id_password1" class="block text-sm font-medium">Password</label>
+            <input type="password" name="password1" id="id_password1" required autocomplete="new-password"
+                   class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            <p class="mt-1 text-xs text-slate-500">At least 8 characters, not too common, and not all numbers.</p>
+            {% for error in form.password1.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label for="id_password2" class="block text-sm font-medium">Confirm password</label>
+            <input type="password" name="password2" id="id_password2" required autocomplete="new-password"
+                   class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            {% for error in form.password2.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">Sign up</button>
+    </form>
+</div>
+{% endblock %}
