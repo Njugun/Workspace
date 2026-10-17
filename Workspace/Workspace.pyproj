@@ -41,6 +41,13 @@
     <Compile Include="app\__init__.py" />
     <Compile Include="app\migrations\__init__.py" />
     <Compile Include="manage.py" />
+    <Compile Include="workspaces\admin.py" />
+    <Compile Include="workspaces\apps.py" />
+    <Compile Include="workspaces\migrations\__init__.py" />
+    <Compile Include="workspaces\models.py" />
+    <Compile Include="workspaces\tests.py" />
+    <Compile Include="workspaces\views.py" />
+    <Compile Include="workspaces\__init__.py" />
     <Compile Include="Workspace\__init__.py" />
     <Compile Include="Workspace\settings.py" />
     <Compile Include="Workspace\urls.py" />
@@ -56,6 +63,8 @@
     <Folder Include="app\static\app\scripts\" />
     <Folder Include="app\templates\" />
     <Folder Include="app\templates\app\" />
+    <Folder Include="workspaces\" />
+    <Folder Include="workspaces\migrations\" />
     <Folder Include="Workspace\" />
   </ItemGroup>
   <ItemGroup>
