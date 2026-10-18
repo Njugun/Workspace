@@ -49,6 +49,9 @@
     <Compile Include="workspaces\migrations\__init__.py" />
     <Compile Include="workspaces\models.py" />
     <Compile Include="workspaces\tests.py" />
+    <Compile Include="workspaces\urls.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\views.py" />
     <Compile Include="workspaces\__init__.py" />
     <Compile Include="Workspace\__init__.py" />
@@ -68,6 +71,8 @@
     <Folder Include="app\templates\app\" />
     <Folder Include="workspaces\" />
     <Folder Include="workspaces\migrations\" />
+    <Folder Include="workspaces\templates\" />
+    <Folder Include="workspaces\templates\workspaces\" />
     <Folder Include="Workspace\" />
   </ItemGroup>
   <ItemGroup>
@@ -100,6 +105,7 @@
     <Content Include="app\templates\app\layout.html" />
     <Content Include="app\templates\app\login.html" />
     <Content Include="app\templates\app\loginpartial.html" />
+    <Content Include="workspaces\templates\workspaces\page_detail.html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.html">

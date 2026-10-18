@@ -3,7 +3,7 @@ Definition of urls for Workspace.
 """
 
 from datetime import datetime
-from django.urls import path
+from django.urls import include, path
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from app import forms, views
@@ -12,6 +12,7 @@ from app import forms, views
 urlpatterns = [
     path('', views.home, name='home'),
     path('signup/', views.signup, name='signup'),
+    path('', include('workspaces.urls')),
     path('login/',
          LoginView.as_view
          (

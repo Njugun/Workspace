@@ -24,7 +24,7 @@
                 {% for ws in sidebar_workspaces %}
                 <p class="mt-4 px-2 text-xs font-medium uppercase tracking-wide text-slate-400">{{ ws.name }}</p>
                 {% for page in ws.top_pages %}
-                <span class="block rounded px-2 py-1.5">{{ page.title }}</span>
+                <a href="{% url 'page_detail' page.pk %}" class="block rounded px-2 py-1.5 hover:bg-slate-200">{{ page.title }}</a>
                 {% empty %}
                 <p class="px-2 py-1.5 text-slate-400">No pages yet</p>
                 {% endfor %}
