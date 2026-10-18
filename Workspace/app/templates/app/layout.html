@@ -20,8 +20,17 @@
             <aside class="hidden w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 px-2 py-3 text-sm md:block">
                 {% block sidebar %}
                 <a href="{% url 'home' %}" class="block rounded px-2 py-1.5 hover:bg-slate-200">Home</a>
-                <p class="mt-4 px-2 text-xs font-medium uppercase tracking-wide text-slate-400">Pages</p>
+
+                {% for ws in sidebar_workspaces %}
+                <p class="mt-4 px-2 text-xs font-medium uppercase tracking-wide text-slate-400">{{ ws.name }}</p>
+                {% for page in ws.top_pages %}
+                <span class="block rounded px-2 py-1.5">{{ page.title }}</span>
+                {% empty %}
                 <p class="px-2 py-1.5 text-slate-400">No pages yet</p>
+                {% endfor %}
+                {% empty %}
+                <p class="mt-4 px-2 text-slate-400">You are not in a workspace yet.</p>
+                {% endfor %}
                 {% endblock %}
             </aside>
             {% endif %}
