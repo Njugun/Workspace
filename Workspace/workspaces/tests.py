@@ -309,3 +309,104 @@ class BlockCreateDeleteTests(WorkspaceTestCase):
         response = self.client.get(self.page_url)
         self.assertNotContains(response, self.create_url)
         self.assertNotContains(response, '/delete/')
+
+
+
+class BlockMoveTests(WorkspaceTestCase):
+    def setUp(self):
+        self.heading = Block.objects.get(page=self.page, kind=Block.Kind.HEADING)      # position 1.0
+        self.todo = Block.objects.get(page=self.page, kind=Block.Kind.TODO)            # position 1.5
+        self.paragraph = Block.objects.get(page=self.page, kind=Block.Kind.PARAGRAPH)  # position 2.0
+
+    def move(self, block, direction):
+        return self.client.post(reverse('block_move', args=[block.pk]), {'direction': direction})
+
+    def order(self):
+        return [b.pk for b in self.page.blocks.order_by('position', 'pk')]
+
+    def position(self, block):
+        block.refresh_from_db()
+        return block.position
+
+    def test_move_up_changes_only_the_moved_block(self):
+        self.client.force_login(self.editor)
+        response = self.move(self.paragraph, 'up')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(), [self.heading.pk, self.paragraph.pk, self.todo.pk])
+        self.assertEqual(self.position(self.paragraph), 1.25)
+        self.assertEqual(self.position(self.heading), 1.0)
+        self.assertEqual(self.position(self.todo), 1.5)
+
+    def test_move_down_changes_only_the_moved_block(self):
+        self.client.force_login(self.editor)
+        self.move(self.heading, 'down')
+        self.assertEqual(self.order(), [self.todo.pk, self.heading.pk, self.paragraph.pk])
+        self.assertEqual(self.position(self.heading), 1.75)
+        self.assertEqual(self.position(self.todo), 1.5)
+        self.assertEqual(self.position(self.paragraph), 2.0)
+
+    def test_move_to_the_very_top(self):
+        self.client.force_login(self.editor)
+        self.move(self.todo, 'up')
+        self.assertEqual(self.order(), [self.todo.pk, self.heading.pk, self.paragraph.pk])
+
+    def test_move_to_the_very_bottom(self):
+        self.client.force_login(self.editor)
+        self.move(self.todo, 'down')
+        self.assertEqual(self.order(), [self.heading.pk, self.paragraph.pk, self.todo.pk])
+
+    def test_moving_the_top_block_up_does_nothing(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.move(self.heading, 'up').status_code, 200)
+        self.assertEqual(self.order(), [self.heading.pk, self.todo.pk, self.paragraph.pk])
+
+    def test_moving_the_bottom_block_down_does_nothing(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.move(self.paragraph, 'down').status_code, 200)
+        self.assertEqual(self.order(), [self.heading.pk, self.todo.pk, self.paragraph.pk])
+
+    def test_page_is_renumbered_when_neighbours_are_too_close(self):
+        Block.objects.filter(pk=self.todo.pk).update(position=1.0000001)
+        self.client.force_login(self.editor)
+        self.move(self.paragraph, 'up')
+        self.assertEqual(self.order(), [self.heading.pk, self.paragraph.pk, self.todo.pk])
+        self.assertEqual(
+            list(self.page.blocks.order_by('position', 'pk').values_list('position', flat=True)),
+            [1.0, 1.5, 2.0],
+        )
+
+    def test_blocks_with_equal_positions_get_a_clean_order(self):
+        Block.objects.filter(pk=self.todo.pk).update(position=2.0)  # ties with the paragraph
+        self.client.force_login(self.editor)
+        self.move(self.heading, 'down')
+        self.assertEqual(self.order(), [self.paragraph.pk, self.heading.pk, self.todo.pk])
+        # the tie is gone: every block now has a distinct position
+        positions = list(self.page.blocks.values_list('position', flat=True))
+        self.assertEqual(len(set(positions)), 3)
+
+    def test_viewer_cannot_move(self):
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.move(self.paragraph, 'up').status_code, 403)
+        self.assertEqual(self.order(), [self.heading.pk, self.todo.pk, self.paragraph.pk])
+
+    def test_outsider_cannot_move(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.move(self.paragraph, 'up').status_code, 404)
+
+    def test_unknown_direction_is_rejected(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.move(self.paragraph, 'sideways').status_code, 400)
+
+    def test_move_needs_post(self):
+        self.client.force_login(self.editor)
+        url = reverse('block_move', args=[self.paragraph.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_editor_sees_move_buttons(self):
+        self.client.force_login(self.editor)
+        response = self.client.get(self.page_url)
+        self.assertContains(response, reverse('block_move', args=[self.paragraph.pk]))
+
+    def test_viewer_sees_no_move_buttons(self):
+        self.client.force_login(self.viewer)
+        self.assertNotContains(self.client.get(self.page_url), '/move/')

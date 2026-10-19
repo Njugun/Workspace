@@ -11,4 +11,5 @@ urlpatterns = [
     path('blocks/<int:pk>/update/', views.block_update, name='block_update'),
     path('p/<int:page_pk>/blocks/new/', views.block_create, name='block_create'),
     path('blocks/<int:pk>/delete/', views.block_delete, name='block_delete'),
+    path('blocks/<int:pk>/move/', views.block_move, name='block_move'),
 ]

@@ -13,7 +13,7 @@ from .permissions import (
     membership_for_workspace,
     require_editor,
 )
-from .services import create_workspace
+from .services import create_workspace, move_block
 
 
 @login_required
@@ -22,7 +22,7 @@ def page_detail(request, pk):
     page, membership = get_page_and_membership(request.user, pk)
     return render(request, 'workspaces/page_detail.html', {
         'page': page,
-        'blocks': page.blocks.all(),
+        'blocks': page.blocks.order_by('position', 'pk'),
         'can_edit': can_edit(membership),
         'title': page.title,
     })
@@ -127,3 +127,19 @@ def block_delete(request, pk):
     require_editor(membership)
     block.delete()
     return HttpResponse('')
+
+
+@login_required
+@require_POST
+def block_move(request, pk):
+     """Moves a block up or down and returns the page's refreshed block list."""
+     block, membership = get_block_and_membership(request.user, pk)
+     require_editor(membership)
+     direction = request.POST.get('direction')
+     if direction not in ('up', 'down'):
+         return HttpResponseBadRequest('Direction must be up or down.')
+     move_block(block, direction)
+     return render(request, 'workspaces/_block_list.html', {
+         'blocks': block.page.blocks.order_by('position', 'pk'),
+         'can_edit': True,
+     })

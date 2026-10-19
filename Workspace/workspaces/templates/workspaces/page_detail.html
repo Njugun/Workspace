@@ -6,9 +6,7 @@
     <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
 
     <div id="blocks" class="mt-8 space-y-3">
-        {% for block in blocks %}
-        {% include "workspaces/_block.html" %}
-        {% endfor %}
+        {% include "workspaces/_block_list.html" %}
     </div>
 
     {% if can_edit %}

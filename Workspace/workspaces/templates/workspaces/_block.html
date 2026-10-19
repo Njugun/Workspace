@@ -1,5 +1,5 @@
 <div id="block-{{ block.pk }}" class="group relative">
-    <div class="{% if can_edit %}pr-8{% endif %}">
+    <div class="{% if can_edit %}pr-20{% endif %}">
         {% if block.kind == 'heading' %}
         <h2 class="min-h-6 pt-4 text-2xl font-semibold tracking-tight{% if can_edit %} cursor-text{% endif %}"
             {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>
@@ -26,14 +26,30 @@
     </div>
 
     {% if can_edit %}
-    <button type="button"
-            hx-post="{% url 'block_delete' block.pk %}"
-            hx-target="#block-{{ block.pk }}"
-            hx-swap="outerHTML"
-            hx-confirm="Delete this block?"
-            title="Delete block"
-            class="absolute right-0 top-1 rounded px-1.5 text-slate-400 opacity-0 hover:bg-slate-100 hover:text-red-600 focus:opacity-100 group-hover:opacity-100">
-        &times;
-    </button>
+    <div class="absolute right-0 top-1 flex items-center opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+        <button type="button"
+                hx-post="{% url 'block_move' block.pk %}" hx-vals='{"direction": "up"}'
+                hx-target="#blocks" hx-swap="innerHTML"
+                title="Move up" aria-label="Move block up"
+                class="rounded px-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            &uarr;
+        </button>
+        <button type="button"
+                hx-post="{% url 'block_move' block.pk %}" hx-vals='{"direction": "down"}'
+                hx-target="#blocks" hx-swap="innerHTML"
+                title="Move down" aria-label="Move block down"
+                class="rounded px-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            &darr;
+        </button>
+        <button type="button"
+                hx-post="{% url 'block_delete' block.pk %}"
+                hx-target="#block-{{ block.pk }}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete this block?"
+                title="Delete block" aria-label="Delete block"
+                class="rounded px-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600">
+            &times;
+        </button>
+    </div>
     {% endif %}
 </div>

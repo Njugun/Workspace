@@ -118,6 +118,7 @@
     <Content Include="workspaces\templates\workspaces\page_detail.html" />
     <Content Include="workspaces\templates\workspaces\_block.html" />
     <Content Include="workspaces\templates\workspaces\_block_edit.html" />
+    <Content Include="workspaces\templates\workspaces\_block_list.html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.html">
