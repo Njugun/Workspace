@@ -237,3 +237,75 @@ class BlockEditTests(WorkspaceTestCase):
         response = self.client.post(self.update_url, {'text': '<script>alert(1)</script>'})
         self.assertNotContains(response, '<script>')
         self.assertContains(response, '&lt;script&gt;')
+
+
+
+
+class BlockCreateDeleteTests(WorkspaceTestCase):
+    def setUp(self):
+        self.create_url = reverse('block_create', args=[self.page.pk])
+        self.paragraph = Block.objects.get(page=self.page, kind=Block.Kind.PARAGRAPH)
+        self.delete_url = reverse('block_delete', args=[self.paragraph.pk])
+
+    def test_editor_can_add_each_kind_at_the_end(self):
+        self.client.force_login(self.editor)
+        for kind in Block.Kind.values:
+            with self.subTest(kind=kind):
+                self.assertEqual(self.client.post(self.create_url, {'kind': kind}).status_code, 200)
+        positions = list(self.page.blocks.values_list('position', flat=True))
+        self.assertEqual(positions, [1.0, 1.5, 2.0, 3.0, 4.0, 5.0])
+
+    def test_first_block_on_an_empty_page_starts_at_one(self):
+        empty = Page.objects.create(workspace=self.workspace, title='Empty')
+        self.client.force_login(self.owner)
+        self.client.post(reverse('block_create', args=[empty.pk]), {'kind': 'paragraph'})
+        self.assertEqual(empty.blocks.get().position, 1.0)
+
+    def test_unknown_kind_is_rejected(self):
+        self.client.force_login(self.editor)
+        before = Block.objects.count()
+        self.assertEqual(self.client.post(self.create_url, {'kind': 'video'}).status_code, 400)
+        self.assertEqual(Block.objects.count(), before)
+
+    def test_viewer_cannot_add(self):
+        self.client.force_login(self.viewer)
+        before = Block.objects.count()
+        self.assertEqual(self.client.post(self.create_url, {'kind': 'paragraph'}).status_code, 403)
+        self.assertEqual(Block.objects.count(), before)
+
+    def test_outsider_cannot_add(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.post(self.create_url, {'kind': 'paragraph'}).status_code, 404)
+
+    def test_editor_can_delete(self):
+        self.client.force_login(self.editor)
+        response = self.client.post(self.delete_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b'')
+        self.assertFalse(Block.objects.filter(pk=self.paragraph.pk).exists())
+
+    def test_viewer_cannot_delete(self):
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 403)
+        self.assertTrue(Block.objects.filter(pk=self.paragraph.pk).exists())
+
+    def test_outsider_cannot_delete(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 404)
+        self.assertTrue(Block.objects.filter(pk=self.paragraph.pk).exists())
+
+    def test_delete_needs_post(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(self.delete_url).status_code, 405)
+
+    def test_editor_sees_editing_controls(self):
+        self.client.force_login(self.editor)
+        response = self.client.get(self.page_url)
+        self.assertContains(response, self.create_url)
+        self.assertContains(response, self.delete_url)
+
+    def test_viewer_sees_no_editing_controls(self):
+        self.client.force_login(self.viewer)
+        response = self.client.get(self.page_url)
+        self.assertNotContains(response, self.create_url)
+        self.assertNotContains(response, '/delete/')

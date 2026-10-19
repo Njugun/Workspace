@@ -1,25 +1,39 @@
-<div id="block-{{ block.pk }}">
-    {% if block.kind == 'heading' %}
-    <h2 class="min-h-6 pt-4 text-2xl font-semibold tracking-tight{% if can_edit %} cursor-text{% endif %}"
-        {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>
-        {{ block.text }}
-    </h2>
+<div id="block-{{ block.pk }}" class="group relative">
+    <div class="{% if can_edit %}pr-8{% endif %}">
+        {% if block.kind == 'heading' %}
+        <h2 class="min-h-6 pt-4 text-2xl font-semibold tracking-tight{% if can_edit %} cursor-text{% endif %}"
+            {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>
+            {{ block.text }}
+        </h2>
 
-    {% elif block.kind == 'todo' %}
-    <div class="flex items-start gap-2">
-        <input type="checkbox" name="checked" {% if block.checked %}checked{% endif %}
-               {% if can_edit %}
-               hx-post="{% url 'block_toggle' block.pk %}"
-               hx-target="#block-{{ block.pk }}"
-               hx-swap="outerHTML"
-               {% else %}disabled{% endif %}
-               class="mt-1.5 h-4 w-4">
-        <span class="min-h-6 flex-1 {% if block.checked %}text-slate-400 line-through{% endif %}{% if can_edit %} cursor-text{% endif %}"
-              {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>{{ block.text }}</span>
+        {% elif block.kind == 'todo' %}
+        <div class="flex items-start gap-2">
+            <input type="checkbox" name="checked" {% if block.checked %}checked{% endif %}
+                   {% if can_edit %}
+                   hx-post="{% url 'block_toggle' block.pk %}"
+                   hx-target="#block-{{ block.pk }}"
+                   hx-swap="outerHTML"
+                   {% else %}disabled{% endif %}
+                   class="mt-1.5 h-4 w-4">
+            <span class="min-h-6 flex-1 {% if block.checked %}text-slate-400 line-through{% endif %}{% if can_edit %} cursor-text{% endif %}"
+                  {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>{{ block.text }}</span>
+        </div>
+
+        {% else %}
+        <p class="min-h-6 leading-relaxed text-slate-700{% if can_edit %} cursor-text{% endif %}"
+           {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>{{ block.text }}</p>
+        {% endif %}
     </div>
 
-    {% else %}
-    <p class="min-h-6 leading-relaxed text-slate-700{% if can_edit %} cursor-text{% endif %}"
-       {% if can_edit %}hx-get="{% url 'block_edit' block.pk %}" hx-target="#block-{{ block.pk }}" hx-swap="outerHTML" {% endif %}>{{ block.text }}</p>
+    {% if can_edit %}
+    <button type="button"
+            hx-post="{% url 'block_delete' block.pk %}"
+            hx-target="#block-{{ block.pk }}"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this block?"
+            title="Delete block"
+            class="absolute right-0 top-1 rounded px-1.5 text-slate-400 opacity-0 hover:bg-slate-100 hover:text-red-600 focus:opacity-100 group-hover:opacity-100">
+        &times;
+    </button>
     {% endif %}
 </div>

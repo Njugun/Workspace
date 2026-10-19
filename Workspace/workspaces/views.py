@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.db.models import Max
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -104,3 +105,25 @@ def block_update(request, pk):
      block.save(update_fields=['text', 'updated_at'])
      return render(request, 'workspaces/_block.html', {'block': block, 'can_edit': True})
 
+
+@login_required
+@require_POST
+def block_create(request, page_pk):
+     """Adds an empty block of the chosen kind to the end of a page and returns its edit form."""
+     page, membership = get_page_and_membership(request.user, page_pk)
+     require_editor(membership)
+     kind = request.POST.get('kind')
+     if kind not in Block.Kind.values:
+         return HttpResponseBadRequest('Unknown block type.')
+     last = page.blocks.aggregate(last=Max('position'))['last']
+     block = Block.objects.create(page=page, kind=kind, position=1 if last is None else last + 1)
+     return render(request, 'workspaces/_block_edit.html', {'block': block})
+
+@login_required
+@require_POST
+def block_delete(request, pk):
+    """Deletes a block. The empty reply tells HTMX to remove it from the page."""
+    block, membership = get_block_and_membership(request.user, pk)
+    require_editor(membership)
+    block.delete()
+    return HttpResponse('')

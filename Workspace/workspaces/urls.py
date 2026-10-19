@@ -9,4 +9,6 @@ urlpatterns = [
     path('blocks/<int:pk>/toggle/', views.block_toggle, name='block_toggle'),
     path('blocks/<int:pk>/edit/', views.block_edit, name='block_edit'),
     path('blocks/<int:pk>/update/', views.block_update, name='block_update'),
+    path('p/<int:page_pk>/blocks/new/', views.block_create, name='block_create'),
+    path('blocks/<int:pk>/delete/', views.block_delete, name='block_delete'),
 ]

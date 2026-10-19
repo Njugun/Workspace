@@ -5,12 +5,33 @@
     <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ page.workspace.name }}</p>
     <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
 
-    <div class="mt-8 space-y-3">
+    <div id="blocks" class="mt-8 space-y-3">
         {% for block in blocks %}
         {% include "workspaces/_block.html" %}
-        {% empty %}
-        <p class="text-slate-400">This page is empty.</p>
         {% endfor %}
     </div>
+
+    {% if can_edit %}
+    <div class="mt-6 flex flex-wrap items-center gap-2 text-sm">
+        <span class="text-slate-400">Add</span>
+        <button type="button" hx-post="{% url 'block_create' page.pk %}" hx-vals='{"kind": "paragraph"}'
+                hx-target="#blocks" hx-swap="beforeend"
+                class="rounded border border-slate-300 px-2.5 py-1 hover:bg-slate-100">
+            Paragraph
+        </button>
+        <button type="button" hx-post="{% url 'block_create' page.pk %}" hx-vals='{"kind": "heading"}'
+                hx-target="#blocks" hx-swap="beforeend"
+                class="rounded border border-slate-300 px-2.5 py-1 hover:bg-slate-100">
+            Heading
+        </button>
+        <button type="button" hx-post="{% url 'block_create' page.pk %}" hx-vals='{"kind": "todo"}'
+                hx-target="#blocks" hx-swap="beforeend"
+                class="rounded border border-slate-300 px-2.5 py-1 hover:bg-slate-100">
+            To-do
+        </button>
+    </div>
+    {% elif not blocks %}
+    <p class="mt-8 text-slate-400">This page is empty.</p>
+    {% endif %}
 </article>
 {% endblock %}
