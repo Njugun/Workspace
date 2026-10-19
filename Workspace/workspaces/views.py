@@ -1,23 +1,25 @@
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 
 from .forms import PageForm, WorkspaceForm
-from .models import Membership, Page
+from .models import Page
+from .permissions import (
+    can_edit,
+    get_page_and_membership,
+    membership_for_workspace,
+    require_editor,
+)
 from .services import create_workspace
 
 
 @login_required
 def page_detail(request, pk):
     """Shows one page and its blocks. Only members of the page's workspace may see it."""
-    page = get_object_or_404(
-        Page.objects.select_related('workspace'),
-        pk=pk,
-        workspace__memberships__user=request.user,
-    )
+    page, membership = get_page_and_membership(request.user, pk)
     return render(request, 'workspaces/page_detail.html', {
         'page': page,
         'blocks': page.blocks.all(),
+        'can_edit': can_edit(membership),
         'title': page.title,
     })
 
@@ -43,13 +45,8 @@ def workspace_create(request):
 @login_required
 def page_create(request, workspace_id):
     """Owners and editors may add pages. Non-members get a 404, viewers a 403."""
-    membership = get_object_or_404(
-        Membership.objects.select_related('workspace'),
-        workspace_id=workspace_id,
-        user=request.user,
-    )
-    if membership.role == Membership.Role.VIEWER:
-        raise PermissionDenied
+    membership = membership_for_workspace(request.user, workspace_id)
+    require_editor(membership)
     if request.method == 'POST':
         form = PageForm(request.POST)
         if form.is_valid():
