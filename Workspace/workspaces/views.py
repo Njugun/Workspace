@@ -13,7 +13,7 @@ from .permissions import (
     membership_for_workspace,
     require_editor,
 )
-from .services import create_workspace, move_block
+from .services import create_workspace, move_block, place_block
 
 
 @login_required
@@ -143,3 +143,24 @@ def block_move(request, pk):
          'blocks': block.page.blocks.order_by('position', 'pk'),
          'can_edit': True,
      })
+
+
+def _optional_pk(value):
+     """'' or missing means None, a number means that number. Anything else raises ValueError."""
+     return int(value) if value else None
+
+
+@login_required
+@require_POST
+def block_reorder(request, pk):
+     """Drag and drop: puts a block between the two neighbours it was dropped between."""
+     block, membership = get_block_and_membership(request.user, pk)
+     require_editor(membership)
+     try:
+         above = _optional_pk(request.POST.get('above'))
+         below = _optional_pk(request.POST.get('below'))
+     except ValueError:
+         return HttpResponseBadRequest('Neighbours must be block numbers.')
+     if not place_block(block, above, below):
+         return HttpResponseBadRequest('Those blocks are not neighbours on this page.')
+     return HttpResponse(status=204)

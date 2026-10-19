@@ -1,4 +1,9 @@
-<div id="block-{{ block.pk }}" class="group relative">
+<div id="block-{{ block.pk }}" class="group relative" data-block-id="{{ block.pk }}"
+     {% if can_edit %}data-move-url="{% url 'block_reorder' block.pk %}" {% endif %}>
+    {% if can_edit %}
+    <span class="drag-handle absolute -left-5 top-1.5 cursor-grab select-none rounded px-0.5 text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing"
+          title="Drag to reorder" aria-hidden="true">&#8942;&#8942;</span>
+    {% endif %}
     <div class="{% if can_edit %}pr-20{% endif %}">
         {% if block.kind == 'heading' %}
         <h2 class="min-h-6 pt-4 text-2xl font-semibold tracking-tight{% if can_edit %} cursor-text{% endif %}"

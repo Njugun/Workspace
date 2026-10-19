@@ -410,3 +410,93 @@ class BlockMoveTests(WorkspaceTestCase):
     def test_viewer_sees_no_move_buttons(self):
         self.client.force_login(self.viewer)
         self.assertNotContains(self.client.get(self.page_url), '/move/')
+
+
+class BlockReorderTests(WorkspaceTestCase):
+    def setUp(self):
+        self.heading = Block.objects.get(page=self.page, kind=Block.Kind.HEADING)      # position 1.0
+        self.todo = Block.objects.get(page=self.page, kind=Block.Kind.TODO)            # position 1.5
+        self.paragraph = Block.objects.get(page=self.page, kind=Block.Kind.PARAGRAPH)  # position 2.0
+
+    def reorder(self, block, above=None, below=None):
+        return self.client.post(reverse('block_reorder', args=[block.pk]), {
+            'above': above.pk if above else '',
+            'below': below.pk if below else '',
+        })
+
+    def order(self):
+        return [b.pk for b in self.page.blocks.order_by('position', 'pk')]
+
+    def position(self, block):
+        block.refresh_from_db()
+        return block.position
+
+    def test_drop_between_two_blocks_changes_one_row(self):
+        self.client.force_login(self.editor)
+        response = self.reorder(self.paragraph, above=self.heading, below=self.todo)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(self.order(), [self.heading.pk, self.paragraph.pk, self.todo.pk])
+        self.assertEqual(self.position(self.paragraph), 1.25)
+        self.assertEqual(self.position(self.heading), 1.0)
+        self.assertEqual(self.position(self.todo), 1.5)
+
+    def test_drop_at_the_top(self):
+        self.client.force_login(self.editor)
+        self.reorder(self.paragraph, below=self.heading)
+        self.assertEqual(self.order(), [self.paragraph.pk, self.heading.pk, self.todo.pk])
+
+    def test_drop_at_the_bottom(self):
+        self.client.force_login(self.editor)
+        self.reorder(self.heading, above=self.paragraph)
+        self.assertEqual(self.order(), [self.todo.pk, self.paragraph.pk, self.heading.pk])
+
+    def test_page_is_renumbered_when_neighbours_are_too_close(self):
+        Block.objects.filter(pk=self.todo.pk).update(position=1.0000001)
+        self.client.force_login(self.editor)
+        self.reorder(self.paragraph, above=self.heading, below=self.todo)
+        self.assertEqual(self.order(), [self.heading.pk, self.paragraph.pk, self.todo.pk])
+        positions = list(self.page.blocks.order_by('position', 'pk').values_list('position', flat=True))
+        self.assertEqual(positions, [1.0, 1.5, 2.0])
+
+    def test_neighbour_from_another_page_is_rejected(self):
+        other_page = Page.objects.create(workspace=self.workspace, title='Other')
+        stranger = Block.objects.create(page=other_page, kind=Block.Kind.PARAGRAPH, text='x', position=1)
+        self.client.force_login(self.editor)
+        response = self.reorder(self.paragraph, above=stranger, below=self.heading)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.order(), [self.heading.pk, self.todo.pk, self.paragraph.pk])
+
+    def test_a_block_cannot_be_its_own_neighbour(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.reorder(self.paragraph, above=self.paragraph).status_code, 400)
+
+    def test_non_numeric_neighbours_are_rejected(self):
+        self.client.force_login(self.editor)
+        url = reverse('block_reorder', args=[self.paragraph.pk])
+        self.assertEqual(self.client.post(url, {'above': 'abc'}).status_code, 400)
+
+    def test_viewer_cannot_reorder(self):
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.reorder(self.paragraph, below=self.heading).status_code, 403)
+        self.assertEqual(self.order(), [self.heading.pk, self.todo.pk, self.paragraph.pk])
+
+    def test_outsider_cannot_reorder(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.reorder(self.paragraph, below=self.heading).status_code, 404)
+
+    def test_reorder_needs_post(self):
+        self.client.force_login(self.editor)
+        url = reverse('block_reorder', args=[self.paragraph.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_editor_page_has_drag_and_drop(self):
+        self.client.force_login(self.editor)
+        response = self.client.get(self.page_url)
+        self.assertContains(response, reverse('block_reorder', args=[self.paragraph.pk]))
+        self.assertContains(response, 'sortablejs')
+
+    def test_viewer_page_has_no_drag_and_drop(self):
+        self.client.force_login(self.viewer)
+        response = self.client.get(self.page_url)
+        self.assertNotContains(response, '/reorder/')
+        self.assertNotContains(response, 'sortablejs')

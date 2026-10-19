@@ -33,3 +33,31 @@
     {% endif %}
 </article>
 {% endblock %}
+
+
+{% block scripts %}
+{% if can_edit %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+  new Sortable(document.getElementById('blocks'), {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'opacity-40',
+    onEnd: function (event) {
+      if (event.oldIndex === event.newIndex) return;
+      var item = event.item;
+      var above = item.previousElementSibling;
+      var below = item.nextElementSibling;
+      htmx.ajax('POST', item.dataset.moveUrl, {
+        source: item,
+        swap: 'none',
+        values: {
+          above: (above && above.dataset.blockId) || '',
+          below: (below && below.dataset.blockId) || ''
+        }
+      });
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

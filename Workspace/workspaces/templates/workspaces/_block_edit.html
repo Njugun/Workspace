@@ -1,4 +1,4 @@
-<form id="block-{{ block.pk }}"
+<form id="block-{{ block.pk }}" data-block-id="{{ block.pk }}"
       hx-post="{% url 'block_update' block.pk %}"
       hx-trigger="submit, focusout"
       hx-swap="outerHTML">
