@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .forms import PageForm, WorkspaceForm
 from .models import Block, Page
@@ -80,3 +80,27 @@ def block_toggle(request, pk):
    block.checked = 'checked' in request.POST
    block.save(update_fields=['checked', 'updated_at'])
    return render(request, 'workspaces/_block.html', {'block': block, 'can_edit': True})
+
+
+MAX_BLOCK_TEXT = 5000
+
+
+@login_required
+@require_GET
+def block_edit(request, pk):
+     """Returns the inline edit form for one block."""
+     block, membership = get_block_and_membership(request.user, pk)
+     require_editor(membership)
+     return render(request, 'workspaces/_block_edit.html', {'block': block})
+
+
+@login_required
+@require_POST
+def block_update(request, pk):
+     """Saves a block's new text and returns the updated block as an HTML snippet."""
+     block, membership = get_block_and_membership(request.user, pk)
+     require_editor(membership)
+     block.text = request.POST.get('text', '').strip()[:MAX_BLOCK_TEXT]
+     block.save(update_fields=['text', 'updated_at'])
+     return render(request, 'workspaces/_block.html', {'block': block, 'can_edit': True})
+

@@ -1,0 +1,7 @@
+<form id="block-{{ block.pk }}"
+      hx-post="{% url 'block_update' block.pk %}"
+      hx-trigger="submit, focusout"
+      hx-swap="outerHTML">
+    <input type="text" name="text" value="{{ block.text }}" maxlength="5000" autofocus autocomplete="off"
+           class="block w-full rounded border border-slate-300 bg-white px-2 py-1 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500{% if block.kind == 'heading' %} text-2xl font-semibold tracking-tight{% endif %}">
+</form>

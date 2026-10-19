@@ -197,3 +197,43 @@ class BlockToggleTests(WorkspaceTestCase):
         self.client.force_login(self.editor)
         url = reverse('block_toggle', args=[heading.pk])
         self.assertEqual(self.client.post(url, {'checked': 'on'}).status_code, 400)
+
+
+class BlockEditTests(WorkspaceTestCase):
+    def setUp(self):
+        self.block = Block.objects.get(page=self.page, kind=Block.Kind.PARAGRAPH)
+        self.edit_url = reverse('block_edit', args=[self.block.pk])
+        self.update_url = reverse('block_update', args=[self.block.pk])
+
+    def test_editor_gets_the_edit_form(self):
+        self.client.force_login(self.editor)
+        response = self.client.get(self.edit_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Hello team"')
+
+    def test_editor_can_change_the_text(self):
+        self.client.force_login(self.editor)
+        response = self.client.post(self.update_url, {'text': '  New words  '})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'New words')
+        self.block.refresh_from_db()
+        self.assertEqual(self.block.text, 'New words')
+
+    def test_viewer_cannot_edit(self):
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.get(self.edit_url).status_code, 403)
+        response = self.client.post(self.update_url, {'text': 'Hacked'})
+        self.assertEqual(response.status_code, 403)
+        self.block.refresh_from_db()
+        self.assertEqual(self.block.text, 'Hello team')
+
+    def test_outsider_gets_404(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.get(self.edit_url).status_code, 404)
+        self.assertEqual(self.client.post(self.update_url, {'text': 'x'}).status_code, 404)
+
+    def test_html_in_text_is_escaped(self):
+        self.client.force_login(self.editor)
+        response = self.client.post(self.update_url, {'text': '<script>alert(1)</script>'})
+        self.assertNotContains(response, '<script>')
+        self.assertContains(response, '&lt;script&gt;')
