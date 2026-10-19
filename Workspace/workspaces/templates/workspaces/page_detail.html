@@ -7,16 +7,7 @@
 
     <div class="mt-8 space-y-3">
         {% for block in blocks %}
-        {% if block.kind == 'heading' %}
-        <h2 class="pt-4 text-2xl font-semibold tracking-tight">{{ block.text }}</h2>
-        {% elif block.kind == 'todo' %}
-        <label class="flex items-start gap-2">
-            <input type="checkbox" disabled {% if block.checked %}checked{% endif %} class="mt-1.5 h-4 w-4">
-            <span class="{% if block.checked %}text-slate-400 line-through{% endif %}">{{ block.text }}</span>
-        </label>
-        {% else %}
-        <p class="leading-relaxed text-slate-700">{{ block.text }}</p>
-        {% endif %}
+        {% include "workspaces/_block.html" %}
         {% empty %}
         <p class="text-slate-400">This page is empty.</p>
         {% endfor %}

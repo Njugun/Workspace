@@ -1,0 +1,18 @@
+<div id="block-{{ block.pk }}">
+    {% if block.kind == 'heading' %}
+    <h2 class="pt-4 text-2xl font-semibold tracking-tight">{{ block.text }}</h2>
+    {% elif block.kind == 'todo' %}
+    <label class="flex items-start gap-2">
+        <input type="checkbox" name="checked" {% if block.checked %}checked{% endif %}
+               {% if can_edit %}
+               hx-post="{% url 'block_toggle' block.pk %}"
+               hx-target="#block-{{ block.pk }}"
+               hx-swap="outerHTML"
+               {% else %}disabled{% endif %}
+               class="mt-1.5 h-4 w-4">
+        <span class="{% if block.checked %}text-slate-400 line-through{% endif %}">{{ block.text }}</span>
+    </label>
+    {% else %}
+    <p class="leading-relaxed text-slate-700">{{ block.text }}</p>
+    {% endif %}
+</div>

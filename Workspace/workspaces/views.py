@@ -1,10 +1,13 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
 
 from .forms import PageForm, WorkspaceForm
-from .models import Page
+from .models import Block, Page
 from .permissions import (
     can_edit,
+    get_block_and_membership,
     get_page_and_membership,
     membership_for_workspace,
     require_editor,
@@ -64,3 +67,16 @@ def page_create(request, workspace_id):
         'heading': f'New page in {membership.workspace.name}',
         'button': 'Create page',
     })
+
+
+@login_required
+@require_POST
+def block_toggle(request, pk):
+   """Ticks or unticks a to-do block and returns the updated block as an HTML snippet."""
+   block, membership = get_block_and_membership(request.user, pk)
+   require_editor(membership)
+   if block.kind != Block.Kind.TODO:
+       return HttpResponseBadRequest('Only to-do blocks can be ticked.')
+   block.checked = 'checked' in request.POST
+   block.save(update_fields=['checked', 'updated_at'])
+   return render(request, 'workspaces/_block.html', {'block': block, 'can_edit': True})

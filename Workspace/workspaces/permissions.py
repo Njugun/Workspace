@@ -1,7 +1,7 @@
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
-from .models import Membership, Page
+from .models import Block, Membership, Page
 
 EDIT_ROLES = (Membership.Role.OWNER, Membership.Role.EDITOR)
 
@@ -30,3 +30,10 @@ def require_editor(membership):
     """Raises 403 unless the member may change content."""
     if not can_edit(membership):
         raise PermissionDenied
+
+
+def get_block_and_membership(user, block_pk):
+    """A block plus the user's membership in its workspace. 404 if either is missing."""
+    block = get_object_or_404(Block.objects.select_related('page__workspace'), pk=block_pk)
+    membership = get_object_or_404(Membership, workspace=block.page.workspace, user=user)
+    return block, membership

@@ -116,6 +116,7 @@
     <Content Include="app\templates\app\loginpartial.html" />
     <Content Include="workspaces\templates\workspaces\form.html" />
     <Content Include="workspaces\templates\workspaces\page_detail.html" />
+    <Content Include="workspaces\templates\workspaces\_block.html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.html">

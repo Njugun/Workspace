@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Block, Membership, Page, Workspace
@@ -10,6 +10,7 @@ User = get_user_model()
 PASSWORD = 'S3cure-pass-phrase-77'
 
 
+@override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class WorkspaceTestCase(TestCase):
     """Shared data: one workspace with an owner, an editor and a viewer, plus an outsider."""
 
@@ -118,3 +119,81 @@ class WorkspaceTests(WorkspaceTestCase):
             Membership.objects.create(
                 workspace=self.workspace, user=self.editor, role=Membership.Role.VIEWER
             )
+
+
+class BlockToggleTests(WorkspaceTestCase):
+    def setUp(self):
+        self.todo = Block.objects.get(page=self.page, kind=Block.Kind.TODO)
+        self.url = reverse('block_toggle', args=[self.todo.pk])
+
+    def test_editor_can_tick_and_untick(self):
+        self.client.force_login(self.editor)
+        response = self.client.post(self.url, {'checked': 'on'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'line-through')
+        self.todo.refresh_from_db()
+        self.assertTrue(self.todo.checked)
+
+        self.client.post(self.url)  # an unticked checkbox sends nothing
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.checked)
+
+    def test_viewer_cannot_tick(self):
+        self.client.force_login(self.viewer)
+        response = self.client.post(self.url, {'checked': 'on'})
+        self.assertEqual(response.status_code, 403)
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.checked)
+
+    def test_outsider_gets_404(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.post(self.url, {'checked': 'on'}).status_code, 404)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_only_todo_blocks_can_be_ticked(self):
+        heading = Block.objects.get(page=self.page, kind=Block.Kind.HEADING)
+        self.client.force_login(self.editor)
+        url = reverse('block_toggle', args=[heading.pk])
+        self.assertEqual(self.client.post(url, {'checked': 'on'}).status_code, 400)
+
+
+class BlockToggleTests(WorkspaceTestCase):
+    def setUp(self):
+        self.todo = Block.objects.get(page=self.page, kind=Block.Kind.TODO)
+        self.url = reverse('block_toggle', args=[self.todo.pk])
+
+    def test_editor_can_tick_and_untick(self):
+        self.client.force_login(self.editor)
+        response = self.client.post(self.url, {'checked': 'on'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'line-through')
+        self.todo.refresh_from_db()
+        self.assertTrue(self.todo.checked)
+
+        self.client.post(self.url)  # an unticked checkbox sends nothing
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.checked)
+
+    def test_viewer_cannot_tick(self):
+        self.client.force_login(self.viewer)
+        response = self.client.post(self.url, {'checked': 'on'})
+        self.assertEqual(response.status_code, 403)
+        self.todo.refresh_from_db()
+        self.assertFalse(self.todo.checked)
+
+    def test_outsider_gets_404(self):
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.post(self.url, {'checked': 'on'}).status_code, 404)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_only_todo_blocks_can_be_ticked(self):
+        heading = Block.objects.get(page=self.page, kind=Block.Kind.HEADING)
+        self.client.force_login(self.editor)
+        url = reverse('block_toggle', args=[heading.pk])
+        self.assertEqual(self.client.post(url, {'checked': 'on'}).status_code, 400)
