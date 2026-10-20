@@ -43,6 +43,9 @@
     <Compile Include="manage.py" />
     <Compile Include="workspaces\admin.py" />
     <Compile Include="workspaces\apps.py" />
+    <Compile Include="workspaces\consumers.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\context_processors.py">
       <SubType>Code</SubType>
     </Compile>
@@ -52,6 +55,9 @@
     <Compile Include="workspaces\migrations\__init__.py" />
     <Compile Include="workspaces\models.py" />
     <Compile Include="workspaces\permissions.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="workspaces\routing.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="workspaces\services.py">
