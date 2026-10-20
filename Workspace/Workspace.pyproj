@@ -63,6 +63,9 @@
     </Compile>
     <Compile Include="workspaces\views.py" />
     <Compile Include="workspaces\__init__.py" />
+    <Compile Include="Workspace\asgi.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Workspace\__init__.py" />
     <Compile Include="Workspace\settings.py" />
     <Compile Include="Workspace\urls.py" />
