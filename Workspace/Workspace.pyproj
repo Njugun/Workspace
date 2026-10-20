@@ -49,6 +49,9 @@
     <Compile Include="workspaces\context_processors.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\events.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\forms.py">
       <SubType>Code</SubType>
     </Compile>

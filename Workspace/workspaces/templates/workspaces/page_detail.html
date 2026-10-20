@@ -5,7 +5,10 @@
     <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ page.workspace.name }}</p>
     <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
 
-    <div id="blocks" class="mt-8 space-y-3">
+    <div id="blocks" class="mt-8 space-y-3"
+         data-page-id="{{ page.pk }}"
+         data-list-url="{% url 'block_list' page.pk %}"
+         data-block-url="{% url 'block_detail' 0 %}">
         {% include "workspaces/_block_list.html" %}
     </div>
 
@@ -39,25 +42,137 @@
 {% if can_edit %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script>
-  new Sortable(document.getElementById('blocks'), {
-    animation: 150,
-    handle: '.drag-handle',
-    ghostClass: 'opacity-40',
-    onEnd: function (event) {
-      if (event.oldIndex === event.newIndex) return;
-      var item = event.item;
-      var above = item.previousElementSibling;
-      var below = item.nextElementSibling;
-      htmx.ajax('POST', item.dataset.moveUrl, {
-        source: item,
-        swap: 'none',
-        values: {
-          above: (above && above.dataset.blockId) || '',
-          below: (below && below.dataset.blockId) || ''
+    new Sortable(document.getElementById('blocks'), {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'opacity-40',
+        onEnd: function (event) {
+            if (event.oldIndex === event.newIndex) return;
+            var item = event.item;
+            var above = item.previousElementSibling;
+            var below = item.nextElementSibling;
+            htmx.ajax('POST', item.dataset.moveUrl, {
+                source: item,
+                swap: 'none',
+                values: {
+                    above: (above && above.dataset.blockId) || '',
+                    below: (below && below.dataset.blockId) || ''
+                }
+            });
         }
-      });
-    }
-  });
+    });
 </script>
 {% endif %}
+
+<script>
+    (function () {
+        var blocks = document.getElementById('blocks');
+        var pageId = blocks.dataset.pageId;
+        var listUrl = blocks.dataset.listUrl;
+        var blockUrl = blocks.dataset.blockUrl;   // looks like /blocks/0/
+
+        // An open edit block is a <form> (see _block_edit.html). A normal block never is.
+        function isEditing(el) {
+            return !!el && el.tagName === 'FORM';
+        }
+
+        function fetchHtml(url) {
+            return fetch(url, { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.text() : null; });
+        }
+
+        function parse(html) {
+            var box = document.createElement('div');
+            box.innerHTML = html;
+            return box;
+        }
+
+        // One block changed: fetch this browser's own copy and swap it in.
+        function refreshBlock(id) {
+            var current = document.getElementById('block-' + id);
+            if (!current) return syncList();                     // we missed its creation
+            if (isEditing(current)) return Promise.resolve();    // L1: leave it alone
+            return fetchHtml(blockUrl.replace('/0/', '/' + id + '/')).then(function (html) {
+                if (html === null) return;
+                var fresh = parse(html).firstElementChild;
+                var now = document.getElementById('block-' + id);
+                if (!fresh || !now || isEditing(now)) return;      // they may have started editing meanwhile
+                now.replaceWith(fresh);
+                htmx.process(fresh);
+            });
+        }
+
+        // Blocks were added or moved: fetch the whole list and rebuild it,
+        // but never touch a block that is open for editing.
+        function syncList() {
+            return fetchHtml(listUrl).then(function (html) {
+                if (html === null) return;
+                var desired = [];   // the final order
+                var fresh = [];     // the newly fetched blocks among them
+                Array.prototype.forEach.call(parse(html).children, function (node) {
+                    var current = node.id && document.getElementById(node.id);
+                    if (current && isEditing(current)) {
+                        desired.push(current);            // keep the open editor as it is
+                    } else {
+                        desired.push(node);
+                        fresh.push(node);
+                    }
+                });
+                // Remove everything except the open editors we are keeping.
+                Array.prototype.slice.call(blocks.children).forEach(function (child) {
+                    if (desired.indexOf(child) === -1) child.remove();
+                });
+                // Put the blocks in order, moving as little as possible.
+                var ref = blocks.firstElementChild;
+                desired.forEach(function (node) {
+                    if (node === ref) {
+                        ref = ref.nextElementSibling;
+                    } else {
+                        blocks.insertBefore(node, ref);
+                    }
+                });
+                fresh.forEach(function (node) { htmx.process(node); });
+            });
+        }
+
+        function removeBlock(id) {
+            var el = document.getElementById('block-' + id);
+            if (el) el.remove();
+        }
+
+        // Handle announcements one at a time, in order.
+        var queue = Promise.resolve();
+        function enqueue(task) {
+            queue = queue.then(task).catch(function (err) { console.error(err); });
+        }
+
+        function handle(msg) {
+            if (msg.action === 'updated') enqueue(function () { return refreshBlock(msg.block_id); });
+            else if (msg.action === 'deleted') enqueue(function () { removeBlock(msg.block_id); });
+            else enqueue(syncList);   // 'created' and 'reordered'
+        }
+
+        var delay = 1000;
+        var dropped = false;
+
+        function connect() {
+            var scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+            var ws = new WebSocket(scheme + location.host + '/ws/pages/' + pageId + '/');
+
+            ws.onopen = function () {
+                delay = 1000;
+                if (dropped) enqueue(syncList);   // catch up on anything missed while offline
+                dropped = false;
+            };
+            ws.onmessage = function (e) { handle(JSON.parse(e.data)); };
+            ws.onclose = function () {
+                dropped = true;
+                setTimeout(connect, delay);
+                delay = Math.min(delay * 2, 15000);   // wait longer after each failed try
+            };
+        }
+
+        connect();
+    })();
+</script>
 {% endblock %}
