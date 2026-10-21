@@ -15,4 +15,8 @@ urlpatterns = [
     path('blocks/<int:pk>/delete/', views.block_delete, name='block_delete'),
     path('blocks/<int:pk>/move/', views.block_move, name='block_move'),
     path('blocks/<int:pk>/reorder/', views.block_reorder, name='block_reorder'),
+    path('w/<int:workspace_id>/members/', views.members, name='members'),
+    path('w/<int:workspace_id>/members/add/', views.member_add, name='member_add'),
+    path('w/<int:workspace_id>/members/<int:pk>/role/', views.member_role, name='member_role'),
+    path('w/<int:workspace_id>/members/<int:pk>/remove/', views.member_remove, name='member_remove'),
 ]

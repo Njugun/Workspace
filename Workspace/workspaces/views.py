@@ -1,20 +1,31 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .events import announce
-from .forms import PageForm, WorkspaceForm
-from .models import Block, Page
+from .forms import AddMemberForm, PageForm, WorkspaceForm
+from .models import Block, Membership, Page
 from .permissions import (
     can_edit,
     get_block_and_membership,
     get_page_and_membership,
     membership_for_workspace,
     require_editor,
+    require_owner,
 )
-from .services import create_workspace, move_block, place_block, save_block_text
+from .services import (
+    MembershipError,
+    add_member,
+    change_role,
+    create_workspace,
+    move_block,
+    place_block,
+    remove_member,
+    save_block_text,
+)
+
 
 
 @login_required
@@ -204,3 +215,75 @@ def block_reorder(request, pk):
         return HttpResponseBadRequest('Those blocks are not neighbours on this page.')
     announce(block.page_id, 'reordered', block.pk)
     return HttpResponse(status=204)
+
+
+def _members_page(request, membership, form=None, error=None, status=200):
+    """Draws the Members page for the workspace that `membership` belongs to."""
+    workspace = membership.workspace
+    members = sorted(
+        workspace.memberships.select_related('user'),
+        key=lambda m: m.user.get_username().lower(),
+    )
+    return render(request, 'workspaces/members.html', {
+        'workspace': workspace,
+        'members': members,
+        'is_owner': membership.role == Membership.Role.OWNER,
+        'me_id': request.user.pk,
+        'roles': Membership.Role.choices,
+        'form': form or AddMemberForm(),
+        'error': error,
+        'title': 'Members',
+    }, status=status)
+
+
+@login_required
+def members(request, workspace_id):
+    """Lists a workspace's members. Any member may look; only owners get the controls."""
+    membership = membership_for_workspace(request.user, workspace_id)
+    return _members_page(request, membership)
+
+
+@login_required
+@require_POST
+def member_add(request, workspace_id):
+    """Owners add an existing account to the workspace."""
+    membership = membership_for_workspace(request.user, workspace_id)
+    require_owner(membership)
+    form = AddMemberForm(request.POST)
+    if not form.is_valid():
+        return _members_page(request, membership, form=form, status=400)
+    try:
+        add_member(membership.workspace, form.cleaned_data['username'], form.cleaned_data['role'])
+    except MembershipError as error:
+        return _members_page(request, membership, form=form, error=str(error), status=400)
+    return redirect('members', workspace_id=workspace_id)
+
+
+@login_required
+@require_POST
+def member_role(request, workspace_id, pk):
+    """Owners change a member's role."""
+    membership = membership_for_workspace(request.user, workspace_id)
+    require_owner(membership)
+    target = get_object_or_404(Membership, pk=pk, workspace_id=workspace_id)
+    try:
+        change_role(target, request.POST.get('role', ''))
+    except MembershipError as error:
+        return _members_page(request, membership, error=str(error), status=400)
+    return redirect('members', workspace_id=workspace_id)
+
+
+@login_required
+@require_POST
+def member_remove(request, workspace_id, pk):
+    """Owners remove anyone. Any member may remove themselves, which is leaving."""
+    membership = membership_for_workspace(request.user, workspace_id)
+    target = get_object_or_404(Membership, pk=pk, workspace_id=workspace_id)
+    leaving = target.pk == membership.pk
+    if not leaving:
+        require_owner(membership)
+    try:
+        remove_member(target)
+    except MembershipError as error:
+        return _members_page(request, membership, error=str(error), status=400)
+    return redirect('home' if leaving else 'members', **({} if leaving else {'workspace_id': workspace_id}))

@@ -37,3 +37,9 @@ def get_block_and_membership(user, block_pk):
     block = get_object_or_404(Block.objects.select_related('page__workspace'), pk=block_pk)
     membership = get_object_or_404(Membership, workspace=block.page.workspace, user=user)
     return block, membership
+
+
+def require_owner(membership):
+    """Raises 403 unless the member is an owner of the workspace."""
+    if membership.role != Membership.Role.OWNER:
+        raise PermissionDenied

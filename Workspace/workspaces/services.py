@@ -1,6 +1,8 @@
 from django.db.models import F
 from django.utils import timezone
 
+from django.contrib.auth import get_user_model
+
 from django.db import transaction
 
 from .models import Block, Membership, Workspace
@@ -110,3 +112,61 @@ def save_block_text(block_pk, text, version=None, original=None):
     saved = changes.update(text=text, version=F('version') + 1, updated_at=timezone.now())
     current = Block.objects.get(pk=block_pk)
     return ('saved' if saved else 'conflict'), current
+
+
+class MembershipError(Exception):
+    """A membership change that is not allowed. The message is safe to show to the person."""
+
+
+def _check_role(role):
+    if role not in Membership.Role.values:
+        raise MembershipError('Unknown role.')
+
+
+def _check_not_last_owner(membership):
+    """Refuses to lose the workspace's only owner."""
+    if membership.role != Membership.Role.OWNER:
+        return
+    owners = list(
+        Membership.objects.select_for_update().filter(
+            workspace_id=membership.workspace_id, role=Membership.Role.OWNER
+        )
+    )
+    if len(owners) <= 1:
+        raise MembershipError('A workspace needs at least one owner.')
+
+
+@transaction.atomic
+def add_member(workspace, username, role):
+    """Adds an existing account to a workspace. Returns the new Membership."""
+    _check_role(role)
+    User = get_user_model()
+    username = (username or '').strip()
+    user = None
+    if username:
+        user = User.objects.filter(**{f'{User.USERNAME_FIELD}__iexact': username}).first()
+    if user is None:
+        raise MembershipError('There is no account with that username.')
+    if Membership.objects.filter(workspace=workspace, user=user).exists():
+        raise MembershipError(f'{user.get_username()} is already a member.')
+    return Membership.objects.create(workspace=workspace, user=user, role=role)
+
+
+@transaction.atomic
+def change_role(membership, role):
+    """Gives a member a new role. The last owner cannot be demoted."""
+    _check_role(role)
+    membership = Membership.objects.select_for_update().get(pk=membership.pk)
+    if role != Membership.Role.OWNER:
+        _check_not_last_owner(membership)
+    membership.role = role
+    membership.save(update_fields=['role'])
+    return membership
+
+
+@transaction.atomic
+def remove_member(membership):
+    """Removes a member from a workspace, or lets them leave. The last owner cannot go."""
+    membership = Membership.objects.select_for_update().get(pk=membership.pk)
+    _check_not_last_owner(membership)
+    membership.delete()

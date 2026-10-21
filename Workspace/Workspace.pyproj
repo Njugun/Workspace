@@ -66,6 +66,12 @@
     <Compile Include="workspaces\services.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\test_members.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="workspaces\test_members_page.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\test_presence.py">
       <SubType>Code</SubType>
     </Compile>
@@ -136,6 +142,7 @@
     <Content Include="app\templates\app\login.html" />
     <Content Include="app\templates\app\loginpartial.html" />
     <Content Include="workspaces\templates\workspaces\form.html" />
+    <Content Include="workspaces\templates\workspaces\members.html" />
     <Content Include="workspaces\templates\workspaces\page_detail.html" />
     <Content Include="workspaces\templates\workspaces\_block.html" />
     <Content Include="workspaces\templates\workspaces\_block_conflict.html" />

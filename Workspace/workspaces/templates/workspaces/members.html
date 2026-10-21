@@ -1,0 +1,65 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<section class="mx-auto max-w-2xl px-6 py-10">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ workspace.name }}</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight">Members</h1>
+
+    {% if error %}
+    <p class="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
+    {% endif %}
+
+    <ul class="mt-6 divide-y divide-slate-200 rounded border border-slate-200">
+        {% for m in members %}
+        <li class="flex items-center justify-between gap-3 px-3 py-2">
+            <span>{{ m.user.get_username }}{% if m.user_id == me_id %} <span class="text-slate-400">(you)</span>{% endif %}</span>
+            <span class="flex items-center gap-2">
+                {% if is_owner %}
+                <form method="post" action="{% url 'member_role' workspace.pk m.pk %}" class="flex items-center gap-1">
+                    {% csrf_token %}
+                    <select name="role" aria-label="Role of {{ m.user.get_username }}"
+                            class="rounded border border-slate-300 px-2 py-1 text-sm">
+                        {% for value, label in roles %}
+                        {% if value == m.role %}
+                        <option value="{{ value }}" selected>{{ label }}</option>
+                        {% else %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-100">Save</button>
+                </form>
+                {% else %}
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ m.get_role_display }}</span>
+                {% endif %}
+
+                {% if is_owner or m.user_id == me_id %}
+                <form method="post" action="{% url 'member_remove' workspace.pk m.pk %}"
+                      onsubmit="return confirm('Are you sure?');">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600">
+                        {% if m.user_id == me_id %}Leave{% else %}Remove{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if is_owner %}
+    <form method="post" action="{% url 'member_add' workspace.pk %}" class="mt-8">
+        {% csrf_token %}
+        <h2 class="text-sm font-medium text-slate-600">Add someone</h2>
+        <div class="mt-2 flex items-start gap-2">
+            <div class="flex-1">{{ form.username }}{{ form.username.errors }}</div>
+            <div>{{ form.role }}</div>
+            <button type="submit" class="mt-1 rounded bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Add</button>
+        </div>
+        <p class="mt-1 text-xs text-slate-400">They need an existing account.</p>
+    </form>
+    {% else %}
+    <p class="mt-6 text-sm text-slate-400">Only owners can add people or change roles.</p>
+    {% endif %}
+</section>
+{% endblock %}
