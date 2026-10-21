@@ -14,7 +14,7 @@ from .permissions import (
     membership_for_workspace,
     require_editor,
 )
-from .services import create_workspace, move_block, place_block
+from .services import create_workspace, move_block, place_block, save_block_text
 
 
 @login_required
@@ -119,16 +119,25 @@ def block_edit(request, pk):
     return render(request, 'workspaces/_block_edit.html', {'block': block})
 
 
+
 @login_required
 @require_POST
 def block_update(request, pk):
-    """Saves a block's new text and returns the updated block as an HTML snippet."""
+    """Saves a block's new text, unless someone else changed the block in the meantime."""
     block, membership = get_block_and_membership(request.user, pk)
     require_editor(membership)
-    block.text = request.POST.get('text', '').strip()[:MAX_BLOCK_TEXT]
-    block.save(update_fields=['text', 'updated_at'])
-    announce(block.page_id, 'updated', block.pk)
-    return render(request, 'workspaces/_block.html', {'block': block, 'can_edit': True})
+    text = request.POST.get('text', '').strip()[:MAX_BLOCK_TEXT]
+    try:
+        version = _optional_pk(request.POST.get('version'))
+    except ValueError:
+        return HttpResponseBadRequest('Version must be a number.')
+    outcome, current = save_block_text(block.pk, text, version, request.POST.get('original'))
+    if outcome == 'conflict':
+        return render(request, 'workspaces/_block_conflict.html', {'block': current, 'draft': text})
+    if outcome == 'saved':
+        announce(current.page_id, 'updated', current.pk)
+    return render(request, 'workspaces/_block.html', {'block': current, 'can_edit': True})
+
 
 
 @login_required

@@ -67,6 +67,7 @@ class Block(models.Model):
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PARAGRAPH)
     text = models.TextField(blank=True)
     checked = models.BooleanField(default=False)  # only used by to-do blocks
+    version = models.PositiveIntegerField(default=1)  # goes up by one on every text save
     position = models.FloatField(db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

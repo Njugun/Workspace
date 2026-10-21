@@ -1,0 +1,21 @@
+<form id="block-{{ block.pk }}" data-block-id="{{ block.pk }}"
+      hx-post="{% url 'block_update' block.pk %}"
+      hx-trigger="submit"
+      hx-swap="outerHTML"
+      class="rounded border border-amber-300 bg-amber-50 p-3">
+    <p class="text-sm font-medium text-amber-800">Someone else changed this block while you were editing.</p>
+    <p class="mt-1 text-sm text-slate-600">Their version: <span class="whitespace-pre-wrap">{{ block.text }}</span></p>
+    <input type="hidden" name="version" value="{{ block.version }}">
+    <input type="hidden" name="original" value="{{ block.text }}">
+    <input type="text" name="text" value="{{ draft }}" maxlength="5000" autocomplete="off"
+           class="mt-2 block w-full rounded border border-slate-300 bg-white px-2 py-1 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+    <div class="mt-2 flex gap-2 text-sm">
+        <button type="submit" class="rounded bg-slate-800 px-2.5 py-1 text-white hover:bg-slate-700">Save mine anyway</button>
+        <button type="button"
+                hx-get="{% url 'block_detail' block.pk %}"
+                hx-target="#block-{{ block.pk }}" hx-swap="outerHTML"
+                class="rounded border border-slate-300 px-2.5 py-1 hover:bg-slate-100">
+            Keep theirs
+        </button>
+    </div>
+</form>

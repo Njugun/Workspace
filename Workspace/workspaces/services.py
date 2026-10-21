@@ -1,3 +1,6 @@
+from django.db.models import F
+from django.utils import timezone
+
 from django.db import transaction
 
 from .models import Block, Membership, Workspace
@@ -81,3 +84,29 @@ def move_block(block, direction):
         above = pks[index + 1]
         below = pks[index + 2] if index + 2 < len(pks) else None
     return place_block(block, above, below)
+
+
+
+def save_block_text(block_pk, text, version=None, original=None):
+    """Saves new text unless the block changed since the person opened it.
+
+    Returns (outcome, block) where outcome is:
+      'saved'     the text was saved and the version went up by one
+      'unchanged' there was nothing to save
+      'conflict'  someone else saved first, so nothing was written
+
+    `version` is the version the person opened. `original` is the text they opened.
+    If either is missing (an older client), the save goes through without the check.
+    """
+    current = Block.objects.get(pk=block_pk)
+    if text == current.text:
+        return 'unchanged', current
+    if original is not None and text == original:
+        return 'unchanged', current   # they changed nothing, so don't overwrite someone else's edit
+
+    changes = Block.objects.filter(pk=block_pk)
+    if version is not None:
+        changes = changes.filter(version=version)   # only matches if nobody saved in between
+    saved = changes.update(text=text, version=F('version') + 1, updated_at=timezone.now())
+    current = Block.objects.get(pk=block_pk)
+    return ('saved' if saved else 'conflict'), current

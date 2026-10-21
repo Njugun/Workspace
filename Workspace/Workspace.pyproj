@@ -70,6 +70,9 @@
     <Compile Include="workspaces\test_realtime.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\test_versions.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\urls.py">
       <SubType>Code</SubType>
     </Compile>
@@ -132,6 +135,7 @@
     <Content Include="workspaces\templates\workspaces\form.html" />
     <Content Include="workspaces\templates\workspaces\page_detail.html" />
     <Content Include="workspaces\templates\workspaces\_block.html" />
+    <Content Include="workspaces\templates\workspaces\_block_conflict.html" />
     <Content Include="workspaces\templates\workspaces\_block_edit.html" />
     <Content Include="workspaces\templates\workspaces\_block_list.html" />
   </ItemGroup>
