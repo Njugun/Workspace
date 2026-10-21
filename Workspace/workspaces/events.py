@@ -19,3 +19,17 @@ def announce(page_id, action, block_id=None):
         )
 
     transaction.on_commit(send)
+
+def announce_membership(workspace_id, user_id, action):
+    """Tells one person's open pages that their place in a workspace changed.
+
+    `action` is 'removed' or 'role'. Every open page in the workspace hears the message,
+    and each one ignores it unless it belongs to that person.
+    """
+    def send():
+        async_to_sync(get_channel_layer().group_send)(
+            f'workspace_{workspace_id}',
+            {'type': 'membership_event', 'user_id': user_id, 'action': action},
+        )
+
+    transaction.on_commit(send)

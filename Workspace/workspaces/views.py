@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from .events import announce
+from .events import announce, announce_membership
 from .forms import AddMemberForm, PageForm, WorkspaceForm
 from .models import Block, Membership, Page
 from .permissions import (
@@ -259,6 +259,7 @@ def member_add(request, workspace_id):
     return redirect('members', workspace_id=workspace_id)
 
 
+
 @login_required
 @require_POST
 def member_role(request, workspace_id, pk):
@@ -266,10 +267,14 @@ def member_role(request, workspace_id, pk):
     membership = membership_for_workspace(request.user, workspace_id)
     require_owner(membership)
     target = get_object_or_404(Membership, pk=pk, workspace_id=workspace_id)
+    role = request.POST.get('role', '')
+    changed = target.role != role
     try:
-        change_role(target, request.POST.get('role', ''))
+        change_role(target, role)
     except MembershipError as error:
         return _members_page(request, membership, error=str(error), status=400)
+    if changed:
+        announce_membership(workspace_id, target.user_id, 'role')
     return redirect('members', workspace_id=workspace_id)
 
 
@@ -282,8 +287,12 @@ def member_remove(request, workspace_id, pk):
     leaving = target.pk == membership.pk
     if not leaving:
         require_owner(membership)
+    user_id = target.user_id
     try:
         remove_member(target)
     except MembershipError as error:
         return _members_page(request, membership, error=str(error), status=400)
-    return redirect('home' if leaving else 'members', **({} if leaving else {'workspace_id': workspace_id}))
+    announce_membership(workspace_id, user_id, 'removed')
+    if leaving:
+        return redirect('home')
+    return redirect('members', workspace_id=workspace_id)

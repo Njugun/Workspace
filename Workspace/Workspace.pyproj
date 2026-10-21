@@ -69,6 +69,9 @@
     <Compile Include="workspaces\test_members.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\test_membership_live.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\test_members_page.py">
       <SubType>Code</SubType>
     </Compile>

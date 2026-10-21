@@ -5,9 +5,10 @@
     <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ page.workspace.name }}</p>
     <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
 
-    <div id="presence" data-me="{{ user.get_username }}"
+    <div id="presence" data-me="{{ user.get_username }}" data-home="{% url 'home' %}"
          class="mt-2 flex min-h-6 flex-wrap items-center gap-1.5 text-xs text-slate-500">
     </div>
+    <p id="notice" class="mt-2 hidden rounded bg-amber-50 px-3 py-2 text-sm text-amber-800"></p>
 
     <div id="blocks" class="mt-8 space-y-3"
          data-page-id="{{ page.pk }}"
@@ -163,6 +164,22 @@
             });
         }
 
+        var notice = document.getElementById('notice');
+
+        function showNotice(text) {
+            notice.textContent = text;
+            notice.classList.remove('hidden');
+        }
+
+        // Your role here changed. Reload to get the right controls, unless you are mid-edit.
+        function reloadForRoleChange() {
+            if (blocks.querySelector('form')) {
+                showNotice('Your role in this workspace changed. Reload the page to update.');
+                return;
+            }
+            window.location.reload();
+        }
+
 
         // Handle announcements one at a time, in order.
         var queue = Promise.resolve();
@@ -173,6 +190,7 @@
 
         function handle(msg) {
             if (msg.action === 'presence') showPresence(msg.users);
+            else if (msg.action === 'reload') reloadForRoleChange();
             else if (msg.action === 'updated') enqueue(function () { return refreshBlock(msg.block_id); });
             else if (msg.action === 'deleted') enqueue(function () { removeBlock(msg.block_id); });
             else enqueue(syncList);   // 'created' and 'reordered'
@@ -192,8 +210,12 @@
                 dropped = false;
             };
             ws.onmessage = function (e) { handle(JSON.parse(e.data)); };
-            ws.onclose = function () {
+            ws.onclose = function (e) {
                 showPresence([]);   // while disconnected we can't know who is here
+                if (e.code === 4403) {   // we were removed from this workspace: don't reconnect
+                    window.location.assign(presence.dataset.home);
+                    return;
+                }
                 dropped = true;
                 setTimeout(connect, delay);
                 delay = Math.min(delay * 2, 15000);   // wait longer after each failed try

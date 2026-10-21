@@ -21,23 +21,30 @@ class PageConsumer(AsyncWebsocketConsumer):
     """One open browser tab looking at one page. It only listens for announcements."""
 
     async def connect(self):
+        self.joined = False
         self.page_id = self.scope['url_route']['kwargs']['page_id']
-        self.group_name = f'page_{self.page_id}'
         user = self.scope['user']
-
-        if not user.is_authenticated or not await self.is_member(user):
+        workspace_id = await self.workspace_id_if_member(user) if user.is_authenticated else None
+        if workspace_id is None:
             await self.close()  # refuse the connection
             return
 
+        self.user = user
+        self.group_name = f'page_{self.page_id}'
+        self.workspace_group = f'workspace_{workspace_id}'
         await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.channel_layer.group_add(self.workspace_group, self.channel_name)
         await self.accept()
+        self.joined = True
         _present.setdefault(self.page_id, {})[self.channel_name] = (user.pk, user.get_username())
         await self.announce_presence()
 
     async def disconnect(self, code):
-        if not hasattr(self, 'group_name'):
+        if not getattr(self, 'joined', False):
             return
+        self.joined = False
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self.channel_layer.group_discard(self.workspace_group, self.channel_name)
         here = _present.get(self.page_id)
         if here is not None and here.pop(self.channel_name, None) is not None:
             if not here:
@@ -54,6 +61,16 @@ class PageConsumer(AsyncWebsocketConsumer):
         # Called when something is announced to this page's group.
         await self.send(text_data=json.dumps(event['payload']))
 
+    async def membership_event(self, event):
+        # Called when someone's place in this workspace changed. Only their own tabs react.
+        if event['user_id'] != self.user.pk:
+            return
+        if event['action'] == 'removed' and await self.workspace_id_if_member(self.user) is None:
+            await self.close(code=4403)   # the page reads this code and goes back to Home
+            return
+        await self.send(text_data=json.dumps({'action': 'reload', 'page_id': self.page_id}))
+
     @database_sync_to_async
-    def is_member(self, user):
-        return Membership.objects.filter(user=user, workspace__pages__pk=self.page_id).exists()
+    def workspace_id_if_member(self, user):
+        membership = Membership.objects.filter(user=user, workspace__pages__pk=self.page_id).first()
+        return membership.workspace_id if membership else None
