@@ -66,6 +66,9 @@
     <Compile Include="workspaces\services.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\test_presence.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\tests.py" />
     <Compile Include="workspaces\test_realtime.py">
       <SubType>Code</SubType>

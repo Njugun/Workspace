@@ -5,6 +5,10 @@
     <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ page.workspace.name }}</p>
     <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
 
+    <div id="presence" data-me="{{ user.get_username }}"
+         class="mt-2 flex min-h-6 flex-wrap items-center gap-1.5 text-xs text-slate-500">
+    </div>
+
     <div id="blocks" class="mt-8 space-y-3"
          data-page-id="{{ page.pk }}"
          data-list-url="{% url 'block_list' page.pk %}"
@@ -140,17 +144,40 @@
             if (el) el.remove();
         }
 
+
+        var presence = document.getElementById('presence');
+        var me = presence.dataset.me;
+
+        // Shows who has this page open right now. Names are set as text, never as HTML.
+        function showPresence(names) {
+            presence.replaceChildren();
+            if (!names.length) return;
+            var label = document.createElement('span');
+            label.textContent = 'Here now:';
+            presence.appendChild(label);
+            names.forEach(function (name) {
+                var chip = document.createElement('span');
+                chip.className = 'rounded-full bg-slate-100 px-2 py-0.5 text-slate-700';
+                chip.textContent = name === me ? name + ' (you)' : name;
+                presence.appendChild(chip);
+            });
+        }
+
+
         // Handle announcements one at a time, in order.
         var queue = Promise.resolve();
         function enqueue(task) {
             queue = queue.then(task).catch(function (err) { console.error(err); });
         }
 
+
         function handle(msg) {
-            if (msg.action === 'updated') enqueue(function () { return refreshBlock(msg.block_id); });
+            if (msg.action === 'presence') showPresence(msg.users);
+            else if (msg.action === 'updated') enqueue(function () { return refreshBlock(msg.block_id); });
             else if (msg.action === 'deleted') enqueue(function () { removeBlock(msg.block_id); });
             else enqueue(syncList);   // 'created' and 'reordered'
         }
+
 
         var delay = 1000;
         var dropped = false;
@@ -166,6 +193,7 @@
             };
             ws.onmessage = function (e) { handle(JSON.parse(e.data)); };
             ws.onclose = function () {
+                showPresence([]);   // while disconnected we can't know who is here
                 dropped = true;
                 setTimeout(connect, delay);
                 delay = Math.min(delay * 2, 15000);   // wait longer after each failed try

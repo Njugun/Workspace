@@ -117,6 +117,7 @@ class RealtimeTests(WorldMixin, TransactionTestCase):
         try:
             connected, _ = await comm.connect()
             self.assertTrue(connected)
+            await comm.receive_json_from(timeout=2)   # skip the "who is here" message
             response = await sync_to_async(client.post)(url, data or {})
             message = await comm.receive_json_from(timeout=2)
             return response, message
@@ -212,6 +213,7 @@ class RealtimeTests(WorldMixin, TransactionTestCase):
         try:
             connected, _ = await comm.connect()
             self.assertTrue(connected)
+            await comm.receive_json_from(timeout=2)   # skip the "who is here" message
             response = await sync_to_async(self.viewer_client.post)(
                 reverse('block_update', args=[self.paragraph.pk]), {'text': 'Hacked'},
             )
@@ -225,6 +227,7 @@ class RealtimeTests(WorldMixin, TransactionTestCase):
         try:
             connected, _ = await comm.connect()
             self.assertTrue(connected)
+            await comm.receive_json_from(timeout=2)   # skip the "who is here" message
             await sync_to_async(self.editor_client.post)(
                 reverse('block_update', args=[self.paragraph.pk]), {'text': 'Changed'},
             )
