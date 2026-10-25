@@ -230,3 +230,5 @@ __pycache__/
 
 **/assets/css/tailwind.css
 *.pyproj.user
+staticfiles/
+
