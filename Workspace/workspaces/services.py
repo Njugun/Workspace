@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 
 from django.db import transaction
 
-from .models import Block, Membership, Workspace
+from .models import Block, Membership, Page, Workspace
 
 
 @transaction.atomic
@@ -170,3 +170,73 @@ def remove_member(membership):
     membership = Membership.objects.select_for_update().get(pk=membership.pk)
     _check_not_last_owner(membership)
     membership.delete()
+
+
+
+
+MAX_PAGE_DEPTH = 4
+MAX_TITLE_LENGTH = 200
+
+
+class PageError(Exception):
+    """A page change that is not allowed. The message is safe to show to the person."""
+
+
+def _clean_title(title):
+    title = (title or '').strip()
+    if not title:
+        raise PageError('A page needs a title.')
+    if len(title) > MAX_TITLE_LENGTH:
+        raise PageError(f'A title can be at most {MAX_TITLE_LENGTH} characters.')
+    return title
+
+
+def page_depth(page):
+    """How deep a page sits: 1 for a top-level page, 2 for a sub-page, and so on."""
+    depth = 1
+    while page.parent_id is not None:
+        page = Page.objects.get(pk=page.parent_id)
+        depth += 1
+    return depth
+
+
+@transaction.atomic
+def create_page(workspace, title, created_by, parent=None):
+    """Creates a page, at the top level or inside `parent`. Returns the new Page."""
+    title = _clean_title(title)
+    if parent is not None:
+        if parent.workspace_id != workspace.pk:
+            raise PageError('A sub-page must be in the same workspace as its parent.')
+        if page_depth(parent) >= MAX_PAGE_DEPTH:
+            raise PageError(f'Pages can be nested {MAX_PAGE_DEPTH} levels deep at most.')
+    return Page.objects.create(workspace=workspace, parent=parent, title=title, created_by=created_by)
+
+
+def rename_page(page, title):
+    """Gives a page a new title. Returns the page."""
+    page.title = _clean_title(title)
+    page.save(update_fields=['title', 'updated_at'])
+    return page
+
+
+def descendant_ids(page):
+    """The ids of every page nested inside `page`, at any depth."""
+    found, frontier = [], [page.pk]
+    while frontier:
+        frontier = list(Page.objects.filter(parent_id__in=frontier).values_list('pk', flat=True))
+        found.extend(frontier)
+    return found
+
+
+def deletion_summary(page):
+    """(pages, blocks) that deleting `page` would remove, counting the page and everything inside it."""
+    page_ids = [page.pk] + descendant_ids(page)
+    return len(page_ids), Block.objects.filter(page_id__in=page_ids).count()
+
+
+@transaction.atomic
+def delete_page(page):
+    """Deletes a page with its blocks and sub-pages. Returns the ids of every page removed."""
+    page_ids = [page.pk] + descendant_ids(page)
+    page.delete()
+    return page_ids
