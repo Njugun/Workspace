@@ -2,8 +2,11 @@
 
 {% block content %}
 <article class="mx-auto max-w-3xl px-6 py-10">
-    <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ page.workspace.name }}</p>
-    <h1 class="mt-1 text-4xl font-bold tracking-tight">{{ page.title }}</h1>
+    <p id="breadcrumb" class="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {{ page.workspace.name }}{% for ancestor in ancestors %} <span class="text-slate-300">/</span> <a href="{% url 'page_detail' ancestor.pk %}" class="hover:text-slate-600">{{ ancestor.title }}</a>{% endfor %}
+    </p>
+
+    {% include "workspaces/_page_title.html" %}
 
     <div id="presence" data-me="{{ user.get_username }}" data-home="{% url 'home' %}"
          class="mt-2 flex min-h-6 flex-wrap items-center gap-1.5 text-xs text-slate-500">
@@ -38,6 +41,14 @@
     </div>
     {% elif not blocks %}
     <p class="mt-8 text-slate-400">This page is empty.</p>
+    {% endif %}
+    {% if can_edit %}
+    <div class="mt-10 flex gap-4 border-t border-slate-200 pt-4 text-sm text-slate-500">
+        <a href="{% url 'subpage_create' page.pk %}" class="hover:text-slate-800">+ Sub-page</a>
+        {% if is_owner %}
+        <a href="{% url 'page_delete' page.pk %}" class="ml-auto hover:text-red-600">Delete page</a>
+        {% endif %}
+    </div>
     {% endif %}
 </article>
 {% endblock %}

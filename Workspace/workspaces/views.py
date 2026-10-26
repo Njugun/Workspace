@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .events import announce, announce_membership
 from .forms import AddMemberForm, PageForm, WorkspaceForm
@@ -17,14 +17,21 @@ from .permissions import (
 )
 from .services import (
     MembershipError,
+    PageError,
     add_member,
+    ancestors,
     change_role,
+    create_page,
     create_workspace,
+    delete_page,
+    deletion_summary,
     move_block,
     place_block,
     remove_member,
+    rename_page,
     save_block_text,
 )
+
 
 
 
@@ -34,10 +41,13 @@ def page_detail(request, pk):
     page, membership = get_page_and_membership(request.user, pk)
     return render(request, 'workspaces/page_detail.html', {
         'page': page,
+        'ancestors': ancestors(page),
         'blocks': page.blocks.order_by('position', 'pk'),
         'can_edit': can_edit(membership),
+        'is_owner': membership.role == Membership.Role.OWNER,
         'title': page.title,
     })
+
 
 
 @login_required
@@ -58,6 +68,7 @@ def workspace_create(request):
     })
 
 
+
 @login_required
 def page_create(request, workspace_id):
     """Owners and editors may add pages. Non-members get a 404, viewers a 403."""
@@ -66,11 +77,7 @@ def page_create(request, workspace_id):
     if request.method == 'POST':
         form = PageForm(request.POST)
         if form.is_valid():
-            page = Page.objects.create(
-                workspace=membership.workspace,
-                title=form.cleaned_data['title'],
-                created_by=request.user,
-            )
+            page = create_page(membership.workspace, form.cleaned_data['title'], request.user)
             return redirect('page_detail', pk=page.pk)
     else:
         form = PageForm()
@@ -80,6 +87,7 @@ def page_create(request, workspace_id):
         'heading': f'New page in {membership.workspace.name}',
         'button': 'Create page',
     })
+
 
 
 @login_required
@@ -296,3 +304,82 @@ def member_remove(request, workspace_id, pk):
     if leaving:
         return redirect('home')
     return redirect('members', workspace_id=workspace_id)
+
+
+
+@login_required
+def subpage_create(request, page_pk):
+    """Owners and editors add a page inside an existing page."""
+    parent, membership = get_page_and_membership(request.user, page_pk)
+    require_editor(membership)
+    status = 200
+    if request.method == 'POST':
+        form = PageForm(request.POST)
+        if form.is_valid():
+            try:
+                page = create_page(parent.workspace, form.cleaned_data['title'], request.user, parent=parent)
+            except PageError as error:
+                form.add_error('title', str(error))
+            else:
+                return redirect('page_detail', pk=page.pk)
+        status = 400
+    else:
+        form = PageForm()
+    return render(request, 'workspaces/form.html', {
+        'form': form,
+        'title': 'New sub-page',
+        'heading': f'New page inside {parent.title}',
+        'button': 'Create page',
+    }, status=status)
+
+
+@login_required
+@require_GET
+def sidebar_fragment(request):
+    """The sidebar on its own, so an open page can refresh it."""
+    return render(request, 'workspaces/_sidebar.html')
+
+
+@login_required
+@require_GET
+def page_title_edit(request, pk):
+    """Returns the inline form for renaming a page."""
+    page, membership = get_page_and_membership(request.user, pk)
+    require_editor(membership)
+    return render(request, 'workspaces/_page_title_edit.html', {'page': page})
+
+
+@login_required
+@require_POST
+def page_rename(request, pk):
+    """Renames a page and returns the title. An empty title just restores the old one."""
+    page, membership = get_page_and_membership(request.user, pk)
+    require_editor(membership)
+    new_title = request.POST.get('title', '')
+    if new_title.strip() != page.title:
+        try:
+            rename_page(page, new_title)
+        except PageError:
+            pass
+    return render(request, 'workspaces/_page_title.html', {'page': page, 'can_edit': True})
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def page_delete(request, pk):
+    """Owners only. GET asks for confirmation and says what would go; POST deletes."""
+    page, membership = get_page_and_membership(request.user, pk)
+    require_owner(membership)
+    if request.method == 'POST':
+        parent_id = page.parent_id
+        delete_page(page)
+        if parent_id is not None:
+            return redirect('page_detail', pk=parent_id)
+        return redirect('home')
+    page_count, block_count = deletion_summary(page)
+    return render(request, 'workspaces/page_delete.html', {
+        'page': page,
+        'page_count': page_count,
+        'block_count': block_count,
+        'title': 'Delete page',
+    })

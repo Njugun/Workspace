@@ -1,0 +1,4 @@
+<h1 id="page-title" class="mt-1 text-4xl font-bold tracking-tight{% if can_edit %} cursor-text{% endif %}"
+    {% if can_edit %}hx-get="{% url 'page_title_edit' page.pk %}" hx-target="#page-title" hx-swap="outerHTML" title="Click to rename" {% endif %}>
+    {{ page.title }}
+</h1>

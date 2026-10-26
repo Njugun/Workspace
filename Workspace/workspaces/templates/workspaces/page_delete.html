@@ -1,0 +1,16 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<section class="mx-auto max-w-lg px-6 py-12">
+    <h1 class="text-2xl font-bold tracking-tight">Delete &ldquo;{{ page.title }}&rdquo;?</h1>
+    <p class="mt-3 text-slate-600">
+        This permanently deletes {{ page_count }} page{{ page_count|pluralize }} and {{ block_count }} block{{ block_count|pluralize }}.
+        It includes everything nested inside this page, and it can't be undone.
+    </p>
+    <form method="post" class="mt-6 flex gap-3">
+        {% csrf_token %}
+        <button type="submit" class="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">Delete</button>
+        <a href="{% url 'page_detail' page.pk %}" class="rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">Cancel</a>
+    </form>
+</section>
+{% endblock %}

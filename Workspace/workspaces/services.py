@@ -240,3 +240,12 @@ def delete_page(page):
     page_ids = [page.pk] + descendant_ids(page)
     page.delete()
     return page_ids
+
+def ancestors(page):
+    """The pages above `page`, outermost first."""
+    chain = []
+    while page.parent_id is not None:
+        page = Page.objects.get(pk=page.parent_id)
+        chain.append(page)
+    chain.reverse()
+    return chain

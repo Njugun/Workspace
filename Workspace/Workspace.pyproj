@@ -78,11 +78,17 @@
     <Compile Include="workspaces\test_page_rules.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="workspaces\test_page_titles.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="workspaces\test_presence.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="workspaces\tests.py" />
     <Compile Include="workspaces\test_realtime.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="workspaces\test_subpages.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="workspaces\test_versions.py">
@@ -150,11 +156,15 @@
     <Content Include="app\templates\app\loginpartial.html" />
     <Content Include="workspaces\templates\workspaces\form.html" />
     <Content Include="workspaces\templates\workspaces\members.html" />
+    <Content Include="workspaces\templates\workspaces\page_delete.html" />
     <Content Include="workspaces\templates\workspaces\page_detail.html" />
     <Content Include="workspaces\templates\workspaces\_block.html" />
     <Content Include="workspaces\templates\workspaces\_block_conflict.html" />
     <Content Include="workspaces\templates\workspaces\_block_edit.html" />
     <Content Include="workspaces\templates\workspaces\_block_list.html" />
+    <Content Include="workspaces\templates\workspaces\_page_title.html" />
+    <Content Include="workspaces\templates\workspaces\_page_title_edit.html" />
+    <Content Include="workspaces\templates\workspaces\_sidebar.html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.html">

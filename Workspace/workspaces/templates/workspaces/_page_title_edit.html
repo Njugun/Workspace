@@ -1,0 +1,7 @@
+<form id="page-title" class="mt-1"
+      hx-post="{% url 'page_rename' page.pk %}"
+      hx-trigger="submit, focusout"
+      hx-swap="outerHTML">
+    <input type="text" name="title" value="{{ page.title }}" maxlength="200" autofocus autocomplete="off"
+           class="block w-full rounded border border-slate-300 bg-white px-2 py-1 text-4xl font-bold tracking-tight focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
+</form>

@@ -19,4 +19,9 @@ urlpatterns = [
     path('w/<int:workspace_id>/members/add/', views.member_add, name='member_add'),
     path('w/<int:workspace_id>/members/<int:pk>/role/', views.member_role, name='member_role'),
     path('w/<int:workspace_id>/members/<int:pk>/remove/', views.member_remove, name='member_remove'),
+    path('p/<int:page_pk>/subpages/new/', views.subpage_create, name='subpage_create'),
+    path('sidebar/', views.sidebar_fragment, name='sidebar'),
+    path('p/<int:pk>/title/', views.page_title_edit, name='page_title_edit'),
+    path('p/<int:pk>/rename/', views.page_rename, name='page_rename'),
+    path('p/<int:pk>/delete/', views.page_delete, name='page_delete'),
 ]
